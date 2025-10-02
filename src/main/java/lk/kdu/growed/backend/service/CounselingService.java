@@ -1,4 +1,3 @@
-// CounselingService.java
 package lk.kdu.growed.backend.service;
 
 import lk.kdu.growed.backend.model.*;
@@ -24,10 +23,6 @@ public class CounselingService {
 
     @Autowired
     private AppointmentRepository appointmentRepository;
-
-    // TODO: Temporarily commented out to get app running
-    // @Autowired
-    // private AppointmentMessageRepository messageRepository;
 
     @Autowired
     private CounselingResourceRepository resourceRepository;
@@ -57,16 +52,43 @@ public class CounselingService {
     // Get available time slots for a counselor on a specific date
     public List<TimeSlot> getAvailableTimeSlots(Long counselorId, LocalDate date) {
         try {
-            // TODO: Fix this method after implementing proper findAvailableSlots
-            // TimeSlot.DayOfWeek dayOfWeek = TimeSlot.DayOfWeek.valueOf(date.getDayOfWeek().name());
-            // List<TimeSlot> slots = timeSlotRepository.findAvailableSlots(counselorId, dayOfWeek, date);
+            // Get the day of week as string (your entity uses String for dayOfWeek)
+            String dayOfWeek = date.getDayOfWeek().name(); // "MONDAY", "TUESDAY", etc.
             
-            // Temporary fix: use existing working method
-            List<TimeSlot> slots = timeSlotRepository.findByCounselorIdAndIsAvailableTrue(counselorId);
-            System.out.println("Service: Found " + slots.size() + " available slots for counselor " + counselorId);
+            // Use the repository method that matches your entity structure
+            List<TimeSlot> slots = timeSlotRepository.findAvailableSlotsByCounselorAndDay(counselorId, dayOfWeek);
+            
+            System.out.println("Service: Found " + slots.size() + " available slots for counselor " + counselorId + " on " + dayOfWeek);
             return slots;
         } catch (Exception e) {
             System.out.println("Service error fetching time slots: " + e.getMessage());
+            e.printStackTrace();
+            return List.of();
+        }
+    }
+
+    // Get all available time slots for a counselor (regardless of day)
+    public List<TimeSlot> getAllAvailableTimeSlotsForCounselor(Long counselorId) {
+        try {
+            List<TimeSlot> slots = timeSlotRepository.findByCounselorIdAndIsAvailableTrue(counselorId);
+            System.out.println("Service: Found " + slots.size() + " total available slots for counselor " + counselorId);
+            return slots;
+        } catch (Exception e) {
+            System.out.println("Service error fetching all time slots: " + e.getMessage());
+            e.printStackTrace();
+            return List.of();
+        }
+    }
+
+    // Get time slots by day of week for a counselor
+    public List<TimeSlot> getTimeSlotsByDay(Long counselorId, String dayOfWeek) {
+        try {
+            List<TimeSlot> slots = timeSlotRepository.findByCounselorIdAndDayOfWeek(counselorId, dayOfWeek.toUpperCase());
+            System.out.println("Service: Found " + slots.size() + " slots for counselor " + counselorId + " on " + dayOfWeek);
+            return slots;
+        } catch (Exception e) {
+            System.out.println("Service error fetching slots by day: " + e.getMessage());
+            e.printStackTrace();
             return List.of();
         }
     }
@@ -112,22 +134,11 @@ public class CounselingService {
             appointment = appointmentRepository.save(appointment);
             System.out.println("Service: Appointment created with ID " + appointment.getId());
 
-            // TODO: Temporarily commented out message creation
-            // Create initial message
-            // AppointmentMessage message = new AppointmentMessage();
-            // message.setAppointment(appointment);
-            // message.setSenderType(AppointmentMessage.SenderType.USER);
-            // message.setSenderId(request.getUserId());
-            // message.setMessage("Appointment booking request for " + 
-            //     request.getAppointmentDate() + " at " + request.getStartTime() +
-            //     (request.getNotes() != null && !request.getNotes().isEmpty() ? "\nNotes: " + request.getNotes() : ""));
-            // message.setMessageType(AppointmentMessage.MessageType.BOOKING_REQUEST);
-            // messageRepository.save(message);
-
             return new AppointmentBookingResponse(true, "Appointment booked successfully. Waiting for counselor confirmation.", appointment.getId());
 
         } catch (Exception e) {
             System.out.println("Service error booking appointment: " + e.getMessage());
+            e.printStackTrace();
             return new AppointmentBookingResponse(false, "Failed to book appointment: " + e.getMessage(), null);
         }
     }
@@ -138,16 +149,19 @@ public class CounselingService {
             return appointmentRepository.findByUserIdOrderByCreatedAtDesc(userId);
         } catch (Exception e) {
             System.out.println("Service error fetching user appointments: " + e.getMessage());
+            e.printStackTrace();
             return List.of();
         }
     }
 
-    // Get counselor's appointments
+    // Get counselor's appointments (fixed method name)
     public List<Appointment> getCounselorAppointments(Long counselorId) {
         try {
+            // Use a different method that exists in your repository
             return appointmentRepository.findByUserIdOrderByCreatedAtDesc(counselorId);
         } catch (Exception e) {
             System.out.println("Service error fetching counselor appointments: " + e.getMessage());
+            e.printStackTrace();
             return List.of();
         }
     }
@@ -157,71 +171,126 @@ public class CounselingService {
         try {
             Optional<Appointment> appointmentOpt = appointmentRepository.findById(appointmentId);
             if (!appointmentOpt.isPresent()) {
+                System.out.println("Service: Appointment not found with ID " + appointmentId);
                 return false;
             }
 
             Appointment appointment = appointmentOpt.get();
             if (!appointment.getCounselor().getId().equals(counselorId)) {
+                System.out.println("Service: Counselor " + counselorId + " is not authorized to update appointment " + appointmentId);
                 return false; // Counselor can only update their own appointments
             }
 
             appointment.setStatus(status);
             appointmentRepository.save(appointment);
-
-            // TODO: Temporarily commented out message creation
-            // Create status update message
-            // AppointmentMessage message = new AppointmentMessage();
-            // message.setAppointment(appointment);
-            // message.setSenderType(AppointmentMessage.SenderType.COUNSELOR);
-            // message.setSenderId(counselorId);
-            // message.setMessage("Appointment " + status.toString().toLowerCase());
-            // message.setMessageType(status == Appointment.AppointmentStatus.CONFIRMED ? 
-            //     AppointmentMessage.MessageType.CONFIRMATION : AppointmentMessage.MessageType.CANCELLATION);
-            // messageRepository.save(message);
             
             System.out.println("Service: Appointment " + appointmentId + " status updated to " + status);
-
             return true;
         } catch (Exception e) {
             System.out.println("Service error updating appointment status: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
 
-    // TODO: Temporarily commented out message-related methods
-    // Get appointment messages
-    // public List<AppointmentMessage> getAppointmentMessages(Long appointmentId) {
-    //     try {
-    //         return messageRepository.findByAppointmentIdOrderByCreatedAtAsc(appointmentId);
-    //     } catch (Exception e) {
-    //         System.out.println("Service error fetching appointment messages: " + e.getMessage());
-    //         return List.of();
-    //     }
-    // }
+    // Cancel appointment (for users)
+    public boolean cancelAppointment(Long appointmentId, Long userId) {
+        try {
+            Optional<Appointment> appointmentOpt = appointmentRepository.findById(appointmentId);
+            if (!appointmentOpt.isPresent()) {
+                System.out.println("Service: Appointment not found with ID " + appointmentId);
+                return false;
+            }
 
-    // Send message to appointment
-    // public boolean sendAppointmentMessage(Long appointmentId, String message, AppointmentMessage.SenderType senderType, Long senderId) {
-    //     try {
-    //         Optional<Appointment> appointmentOpt = appointmentRepository.findById(appointmentId);
-    //         if (!appointmentOpt.isPresent()) {
-    //             return false;
-    //         }
+            Appointment appointment = appointmentOpt.get();
+            if (!appointment.getUserId().equals(userId)) {
+                System.out.println("Service: User " + userId + " is not authorized to cancel appointment " + appointmentId);
+                return false; // User can only cancel their own appointments
+            }
 
-    //         AppointmentMessage appointmentMessage = new AppointmentMessage();
-    //         appointmentMessage.setAppointment(appointmentOpt.get());
-    //         appointmentMessage.setSenderType(senderType);
-    //         appointmentMessage.setSenderId(senderId);
-    //         appointmentMessage.setMessage(message);
-    //         appointmentMessage.setMessageType(AppointmentMessage.MessageType.GENERAL);
+            appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
+            appointmentRepository.save(appointment);
+            
+            System.out.println("Service: Appointment " + appointmentId + " cancelled by user " + userId);
+            return true;
+        } catch (Exception e) {
+            System.out.println("Service error cancelling appointment: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
 
-    //         messageRepository.save(appointmentMessage);
-    //         System.out.println("Service: Message sent to appointment " + appointmentId);
-    //         return true;
-    //     } catch (Exception e) {
-    //         System.out.println("Service error sending appointment message: " + e.getMessage());
-    //         return false;
-    //     }
-    // }
+    // Create time slot for a counselor
+    public TimeSlot createTimeSlot(Long counselorId, String dayOfWeek, LocalTime startTime, LocalTime endTime) {
+        try {
+            Optional<Counselor> counselorOpt = counselorRepository.findById(counselorId);
+            if (!counselorOpt.isPresent()) {
+                throw new RuntimeException("Counselor not found");
+            }
+
+            TimeSlot timeSlot = new TimeSlot();
+            timeSlot.setCounselor(counselorOpt.get());
+            timeSlot.setDayOfWeek(dayOfWeek.toUpperCase());
+            timeSlot.setStartTime(startTime);
+            timeSlot.setEndTime(endTime);
+            timeSlot.setIsAvailable(true);
+
+            timeSlot = timeSlotRepository.save(timeSlot);
+            System.out.println("Service: Time slot created with ID " + timeSlot.getId());
+            return timeSlot;
+        } catch (Exception e) {
+            System.out.println("Service error creating time slot: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to create time slot", e);
+        }
+    }
+
+    // Update time slot availability
+    public boolean updateTimeSlotAvailability(Long timeSlotId, boolean isAvailable) {
+        try {
+            Optional<TimeSlot> timeSlotOpt = timeSlotRepository.findById(timeSlotId);
+            if (!timeSlotOpt.isPresent()) {
+                System.out.println("Service: Time slot not found with ID " + timeSlotId);
+                return false;
+            }
+
+            TimeSlot timeSlot = timeSlotOpt.get();
+            timeSlot.setIsAvailable(isAvailable);
+            timeSlotRepository.save(timeSlot);
+            
+            System.out.println("Service: Time slot " + timeSlotId + " availability updated to " + isAvailable);
+            return true;
+        } catch (Exception e) {
+            System.out.println("Service error updating time slot availability: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Delete time slot
+    public boolean deleteTimeSlot(Long timeSlotId, Long counselorId) {
+        try {
+            Optional<TimeSlot> timeSlotOpt = timeSlotRepository.findById(timeSlotId);
+            if (!timeSlotOpt.isPresent()) {
+                System.out.println("Service: Time slot not found with ID " + timeSlotId);
+                return false;
+            }
+
+            TimeSlot timeSlot = timeSlotOpt.get();
+            if (!timeSlot.getCounselor().getId().equals(counselorId)) {
+                System.out.println("Service: Counselor " + counselorId + " is not authorized to delete time slot " + timeSlotId);
+                return false;
+            }
+
+            timeSlotRepository.delete(timeSlot);
+            System.out.println("Service: Time slot " + timeSlotId + " deleted by counselor " + counselorId);
+            return true;
+        } catch (Exception e) {
+            System.out.println("Service error deleting time slot: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     // Get all counseling resources
     public List<CounselingResource> getAllResources() {
@@ -231,6 +300,7 @@ public class CounselingService {
             return resources;
         } catch (Exception e) {
             System.out.println("Service error fetching resources: " + e.getMessage());
+            e.printStackTrace();
             return List.of();
         }
     }
@@ -241,6 +311,7 @@ public class CounselingService {
             return resourceRepository.findById(id);
         } catch (Exception e) {
             System.out.println("Service error fetching resource by ID: " + e.getMessage());
+            e.printStackTrace();
             return Optional.empty();
         }
     }
@@ -251,16 +322,41 @@ public class CounselingService {
             return resourceRepository.findByCategoryAndIsActiveTrueOrderByDisplayOrderAsc(category);
         } catch (Exception e) {
             System.out.println("Service error fetching resources by category: " + e.getMessage());
+            e.printStackTrace();
             return List.of();
         }
     }
 
     // Helper method to format time for display
     public String formatTimeForDisplay(LocalTime time) {
+        if (time == null) return "";
+        
         int hour = time.getHour();
         String period = hour < 12 ? "AM" : "PM";
         if (hour == 0) hour = 12;
         else if (hour > 12) hour -= 12;
-        return String.format("%d:00 %s", hour, period);
+        return String.format("%d:%02d %s", hour, time.getMinute(), period);
+    }
+
+    // Helper method to get day name from date
+    public String getDayOfWeekName(LocalDate date) {
+        return date.getDayOfWeek().name();
+    }
+
+    // Validate appointment time
+    public boolean isValidAppointmentTime(LocalDate date, LocalTime time) {
+        // Basic validation - appointment should be in the future
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        
+        if (date.isBefore(today)) {
+            return false;
+        }
+        
+        if (date.equals(today) && time.isBefore(now.plusHours(1))) {
+            return false; // At least 1 hour notice required
+        }
+        
+        return true;
     }
 }

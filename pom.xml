@@ -4,7 +4,7 @@
                              http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.growed</groupId>
+    <groupId>lk.kdu.growed</groupId>
     <artifactId>growed-backend</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
@@ -40,6 +40,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- Validation -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
         <!-- MySQL Driver -->
@@ -94,8 +100,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
-        
-        <!-- Removed conflicting javax.mail dependency -->
     </dependencies>
 
     <build>
@@ -105,7 +109,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <!-- Updated to match your actual package -->
                     <mainClass>lk.kdu.growed.backend.GrowedBackendApplication</mainClass>
                     <excludes>
                         <exclude>

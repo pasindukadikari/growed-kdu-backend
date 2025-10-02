@@ -52,6 +52,11 @@ public class Counselor {
     @OneToMany(mappedBy = "counselor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TimeSlot> timeSlots;
 
+    // Add this explicit getId() method
+    public Long getId() {
+        return this.id;
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
